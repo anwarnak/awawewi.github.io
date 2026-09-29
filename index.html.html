@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Corazón Animado ❤️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    .font-romantic {
+      font-family: 'Dancing Script', cursive;
+    }
+    canvas {
+      display: block;
+      touch-action: none;
+    }
+    .glow-effect {
+      box-shadow: 0 0 35px rgba(244, 63, 94, 0.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 bg-gradient-to-b from-slate-950 via-slate-900 to-rose-950/30">
+
+  <!-- Encabezado Principal -->
+  <header class="w-full max-w-md text-center pt-4 z-10">
+    <span class="inline-block px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-full text-xs font-semibold tracking-wider uppercase mb-2">
+      Código Interactivo
+    </span>
+    <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white">
+      Un regalo especial ❤️
+    </h1>
+  </header>
+
+  <!-- Área de Canvas con Marco -->
+  <main class="w-full max-w-md flex-1 flex flex-col items-center justify-center my-2 relative">
+    <div class="relative w-full aspect-square max-w-[360px] bg-slate-900/80 border border-slate-800 rounded-3xl glow-effect overflow-hidden backdrop-blur-md flex items-center justify-center">
+      <canvas id="heartCanvas" class="w-full h-full cursor-pointer"></canvas>
+      
+      <!-- Overlay Toca para Reanimar -->
+      <div id="tapPrompt" class="absolute bottom-3 text-xs text-rose-300/70 bg-slate-950/60 backdrop-blur-sm px-3 py-1 rounded-full pointer-events-none transition-opacity duration-300 opacity-0">
+        ✨ Toca la pantalla para hacer latir
+      </div>
+    </div>
+
+    <!-- Controles de Personalización -->
+    <div class="w-full max-w-[360px] mt-4 p-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl backdrop-blur-sm flex flex-col gap-3">
+      <div class="flex items-center justify-between text-xs text-slate-300 font-semibold">
+        <span>Modo de Animación:</span>
+        <span id="speedLabel" class="text-rose-400">Normal</span>
+      </div>
+      <div class="flex gap-2">
+        <button id="btnReplay" class="flex-1 py-2 px-3 bg-rose-600 hover:bg-rose-500 active:scale-95 transition text-white font-medium text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-rose-600/20">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          Reanimar
+        </button>
+        <button id="btnToggleParticles" class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-200 font-medium text-xs rounded-xl flex items-center justify-center gap-1.5 border border-slate-700">
+          ✨ Chispas: <span id="particleStatus" class="text-emerald-400">SI</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Pie de página -->
+  <footer class="w-full max-w-md text-center pb-4 z-10 flex flex-col items-center gap-1">
+    <p class="font-romantic text-2xl md:text-3xl text-rose-400 drop-shadow">
+      Hecho en Python
+    </p>
+    <p class="text-xs text-slate-500">
+      Hola, estoy probando mi tarea
+    </p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById('heartCanvas');
+    const ctx = canvas.getContext('2d');
+    const tapPrompt = document.getElementById('tapPrompt');
+    const btnReplay = document.getElementById('btnReplay');
+    const btnToggleParticles = document.getElementById('btnToggleParticles');
+    const particleStatus = document.getElementById('particleStatus');
+
+    let width, height, centerX, centerY;
+    let particles = [];
+    let heartPoints = [];
+    let progress = 0;
+    let isDrawing = true;
+    let pulseScale = 1;
+    let pulseAngle = 0;
+    let showParticles = true;
+
+    // Función para adaptar resolución de pantalla (HDPI Retina & Mobile)
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      width = canvas.width;
+      height = canvas.height;
+      centerX = width / 2;
+      centerY = height / 2 - (height * 0.03); // Ligeramente elevado
+
+      ctx.scale(dpr, dpr);
+      generateHeartPoints();
+    }
+
+    // Generar coordenadas matemáticas en forma de corazón
+    function generateHeartPoints() {
+      heartPoints = [];
+      const steps = 180;
+      // Escala adaptable al tamaño del contenedor
+      const scale = Math.min(canvas.clientWidth, canvas.clientHeight) / 32;
+
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * Math.PI * 2;
+        // Ecuación paramétrica clásica del corazón
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        
+        heartPoints.push({
+          x: (centerX / (window.devicePixelRatio || 1)) + x * scale,
+          y: (centerY / (window.devicePixelRatio || 1)) + y * scale
+        });
+      }
+    }
+
+    // Sistema de partículas para chispa y brillo alrededor del corazón
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = (Math.random() - 0.5) * 2;
+        this.speedY = (Math.random() - 0.5) * 2;
+        this.color = color || `hsla(${Math.random() * 20 + 340}, 100%, 65%, `;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.01;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= this.decay;
+      }
+
+      draw(context) {
+        context.save();
+        context.globalAlpha = Math.max(0, this.alpha);
+        context.fillStyle = this.color + this.alpha + ')';
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
+    }
+
+    function animate() {
+      const displayWidth = canvas.clientWidth;
+      const displayHeight = canvas.clientHeight;
+
+      // Limpiar lienzo
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+      // Dibujar partículas activas
+      if (showParticles) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          particles[i].update();
+          particles[i].draw(ctx);
+          if (particles[i].alpha <= 0) {
+            particles.splice(i, 1);
+          }
+        }
+      }
+
+      // Animación 1: Dibujado progresivo del corazón
+      if (isDrawing) {
+        const currentLength = Math.floor((progress / 100) * (heartPoints.length - 1));
+
+        if (currentLength > 0) {
+          // Glow exterior brillante
+          ctx.save();
+          ctx.shadowColor = '#f43f5e';
+          ctx.shadowBlur = 18;
+          ctx.strokeStyle = '#fb7185';
+          ctx.lineWidth = 4;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(heartPoints[0].x, heartPoints[0].y);
+
+          for (let i = 1; i <= currentLength; i++) {
+            ctx.lineTo(heartPoints[i].x, heartPoints[i].y);
+          }
+          ctx.stroke();
+          ctx.restore();
+
+          // Crear partículas en la punta donde va dibujando
+          if (showParticles && Math.random() > 0.3) {
+            const head = heartPoints[currentLength];
+            particles.push(new Particle(head.x, head.y));
+          }
+        }
+
+        progress += 1.2; // Velocidad del trazo
+
+        if (progress >= 100) {
+          isDrawing = false;
+          tapPrompt.classList.remove('opacity-0');
+        }
+      } 
+      // Animación 2: Relleno suave con latido del corazón
+      else {
+        pulseAngle += 0.05;
+        // Efecto de doble latido cardíaco
+        pulseScale = 1 + Math.sin(pulseAngle) * 0.03 + Math.sin(pulseAngle * 2) * 0.015;
+
+        ctx.save();
+        ctx.translate(centerX / (window.devicePixelRatio || 1), centerY / (window.devicePixelRatio || 1));
+        ctx.scale(pulseScale, pulseScale);
+        ctx.translate(-(centerX / (window.devicePixelRatio || 1)), -(centerY / (window.devicePixelRatio || 1)));
+
+        // Relleno degradado rojo romántico
+        const gradient = ctx.createRadialGradient(
+          centerX / (window.devicePixelRatio || 1), 
+          centerY / (window.devicePixelRatio || 1), 
+          5, 
+          centerX / (window.devicePixelRatio || 1), 
+          centerY / (window.devicePixelRatio || 1), 
+          120
+        );
+        gradient.addColorStop(0, '#f43f5e');
+        gradient.addColorStop(0.7, '#e11d48');
+        gradient.addColorStop(1, '#9f1239');
+
+        // Dibujar Silueta Completa
+        ctx.beginPath();
+        ctx.moveTo(heartPoints[0].x, heartPoints[0].y);
+        for (let i = 1; i < heartPoints.length; i++) {
+          ctx.lineTo(heartPoints[i].x, heartPoints[i].y);
+        }
+        ctx.closePath();
+
+        // Resplandor exterior (Glow)
+        ctx.shadowColor = '#f43f5e';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.strokeStyle = '#fda4af';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Generar partículas ambientales flotantes ocasionales
+        if (showParticles && Math.random() < 0.2) {
+          const randomPt = heartPoints[Math.floor(Math.random() * heartPoints.length)];
+          particles.push(new Particle(randomPt.x, randomPt.y));
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function restartAnimation() {
+      progress = 0;
+      isDrawing = true;
+      particles = [];
+      tapPrompt.classList.add('opacity-0');
+    }
+
+    // Interacción al presionar el canvas (dispara ráfaga de chispas)
+    function triggerBurst(e) {
+      if (isDrawing) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const touchX = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+      const touchY = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+
+      // Generar ráfaga de chispas en el punto tocado
+      for (let i = 0; i < 25; i++) {
+        particles.push(new Particle(touchX, touchY, `hsla(${Math.random() * 40 + 330}, 100%, 70%, `));
+      }
+
+      // Impulso de latido extra al tocar
+      pulseAngle = 0;
+    }
+
+    // Listeners de Eventos
+    window.addEventListener('resize', resizeCanvas);
+    canvas.addEventListener('click', triggerBurst);
+    canvas.addEventListener('touchstart', (e) => {
+      triggerBurst(e);
+      e.preventDefault();
+    }, { passive: false });
+
+    btnReplay.addEventListener('click', restartAnimation);
+
+    btnToggleParticles.addEventListener('click', () => {
+      showParticles = !showParticles;
+      particleStatus.textContent = showParticles ? 'SI' : 'NO';
+      particleStatus.className = showParticles ? 'text-emerald-400' : 'text-rose-400';
+    });
+
+    // Inicializar app
+    window.onload = () => {
+      resizeCanvas();
+      animate();
+    };
+  </script>
+</body>
+</html>
